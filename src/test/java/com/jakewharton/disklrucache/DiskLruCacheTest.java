@@ -73,20 +73,7 @@ public final class DiskLruCacheTest {
         assertThat(snapshot.getString(1)).isEqualTo("DE");
         assertThat(snapshot.getLength(1)).isEqualTo(2);
     }
-
-    @Test public void writeAndReadEntry2() throws Exception {
-        File f = new File(cacheDir.getAbsolutePath() + "/5c/5c8d53026fca34c6cebefa710dbfcf398463d1c862303c0bafa180a2edc86078.0");
-        f.getParentFile().mkdirs();
-        f.createNewFile();
-        f = new File(cacheDir.getAbsolutePath() + "/4c/4c8d53026fca34c6cebefa710dbfcf398463d1c862303c0bafa180a2edc86078.0");
-        f.getParentFile().mkdirs();
-        f.createNewFile();
-        f = new File(cacheDir.getAbsolutePath() + "/3c/3c8d53026fca34c6cebefa710dbfcf398463d1c862303c0bafa180a2edc86078.0");
-        f.getParentFile().mkdirs();
-        f.createNewFile();
-        cache = DiskLruCache.open(cacheDir, 2, Integer.MAX_VALUE);
-    }
-
+    
     @Test public void cannotOperateOnEditAfterPublish() throws Exception {
         DiskLruCache.Editor editor = cache.edit("k1");
         editor.set(0, "A");
