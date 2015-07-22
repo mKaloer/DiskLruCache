@@ -73,7 +73,7 @@ public final class DiskLruCacheTest {
         assertThat(snapshot.getString(1)).isEqualTo("DE");
         assertThat(snapshot.getLength(1)).isEqualTo(2);
     }
-    
+
     @Test public void cannotOperateOnEditAfterPublish() throws Exception {
         DiskLruCache.Editor editor = cache.edit("k1");
         editor.set(0, "A");
