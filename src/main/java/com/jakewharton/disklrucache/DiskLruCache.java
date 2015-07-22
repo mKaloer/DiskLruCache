@@ -265,6 +265,7 @@ public final class DiskLruCache implements Closeable {
             }
             // Set length of value
             entry.lengths[Integer.parseInt(keyValue[1])] = f.length();
+            entry.readable = true;
         }
     }
 
