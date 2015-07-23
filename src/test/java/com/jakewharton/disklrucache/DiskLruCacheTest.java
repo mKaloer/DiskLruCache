@@ -39,6 +39,8 @@ import org.junit.rules.TemporaryFolder;
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
+import sun.misc.LRUCache;
+
 public final class DiskLruCacheTest {
     private File cacheDir;
     private DiskLruCache cache;
@@ -434,6 +436,129 @@ public final class DiskLruCacheTest {
     @Test public void aggressiveClearingHandlesRead() throws Exception {
         FileUtils.deleteDirectory(cacheDir);
         assertThat(cache.get("a")).isNull();
+    }
+
+    @Test public void readsExistingSingleFileCorrectly() throws Exception {
+        File f = new File(cacheDir, "58/58a7b0785038663a4f0cdd38628bba57ecf86ffa37f692d9493d87a61aa3c9ae.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        cache = DiskLruCache.open(cacheDir, 1, 99999);
+        assertThat(cache.get("cls1.cfc76a55-d434-4f0e-8bea-3a015e9ee6f0.training")).isNotNull();
+    }
+
+    @Test public void readsExistingMultipleFilesWithSamePrefixCorrectly() throws Exception {
+        File f = new File(cacheDir, "58/58a7b0785038663a4f0cdd38628bba57ecf86ffa37f692d9493d87a61aa3c9ae.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "58/585bbc0122a3173e70cdc2b08ce6d9b9dc3d64629fa6c46057ba6c61df443f21.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "58/58aa33116c3ba982e806cf28208f97cfc981144a271d479a466ed08fc1dc6cf6.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        cache = DiskLruCache.open(cacheDir, 1, 99999);
+        assertThat(cache.get("cls1.cfc76a55-d434-4f0e-8bea-3a015e9ee6f0.training")).isNotNull();
+        assertThat(cache.get("RgNIf9vHXHGckbBjYOAgbTUqONUaiDGk")).isNotNull();
+        assertThat(cache.get("cBJOKiwVrekMmqV4LVVUNMPonIx65bdz")).isNotNull();
+        assertThat(cache.get("shouldNotBeFound")).isNull();
+    }
+
+    @Test public void readsExistingMultipleFilesWithDifferentPrefixesCorrectly() throws Exception {
+        File f = new File(cacheDir, "58/58a7b0785038663a4f0cdd38628bba57ecf86ffa37f692d9493d87a61aa3c9ae.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "50/5039c90292bc3e3328b82eee165546ee30175a2cc8c8b94dcc6eecf9126041cf.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "aa/aacec3e213d7e7df8bcecd92fe825976803e7d116c4bf45ad15224633744e0b8.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        cache = DiskLruCache.open(cacheDir, 1, 99999);
+        assertThat(cache.get("cls1.cfc76a55-d434-4f0e-8bea-3a015e9ee6f0.training")).isNotNull();
+        assertThat(cache.get("JJq3EFKcK4fdbZyBKBDt5OF4qxqP2hTI")).isNotNull();
+        assertThat(cache.get("aW04z5gcnXtRWPXXFLtfxJs1EMKzPHiM")).isNotNull();
+        assertThat(cache.get("shouldNotBeFound")).isNull();
+    }
+
+    @Test public void readsExistingEmptyDir() throws Exception {
+        cache = DiskLruCache.open(cacheDir, 1, 99999);
+        assertThat(cache.get("cls1.cfc76a55-d434-4f0e-8bea-3a015e9ee6f0.training")).isNull();
+        assertThat(cache.get("JJq3EFKcK4fdbZyBKBDt5OF4qxqP2hTI")).isNull();
+        assertThat(cache.get("aW04z5gcnXtRWPXXFLtfxJs1EMKzPHiM")).isNull();
+    }
+
+    @Test public void readsExistingDirWithInvalidFileNames() throws Exception {
+        File f = new File(cacheDir, "hello/hello58a7b0785038663a4f0cdd38628bba57ecf86ffa37f692d9493d87a61aa3c9ae.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "hello/hello5039c90292bc3e3328b82eee165546ee30175a2cc8c8b94dcc6eecf9126041cf.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "hello/helloaacec3e213d7e7df8bcecd92fe825976803e7d116c4bf45ad15224633744e0b8.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        cache = DiskLruCache.open(cacheDir, 1, 99999);
+        assertThat(cache.get("cls1.cfc76a55-d434-4f0e-8bea-3a015e9ee6f0.training")).isNull();
+        assertThat(cache.get("JJq3EFKcK4fdbZyBKBDt5OF4qxqP2hTI")).isNull();
+        assertThat(cache.get("aW04z5gcnXtRWPXXFLtfxJs1EMKzPHiM")).isNull();
+    }
+
+    @Test public void readsExistingDirWithLargeValue() throws Exception {
+        File f = new File(cacheDir, "58/58a7b0785038663a4f0cdd38628bba57ecf86ffa37f692d9493d87a61aa3c9ae.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "58/58a7b0785038663a4f0cdd38628bba57ecf86ffa37f692d9493d87a61aa3c9ae.1");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "50/5039c90292bc3e3328b82eee165546ee30175a2cc8c8b94dcc6eecf9126041cf.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "50/5039c90292bc3e3328b82eee165546ee30175a2cc8c8b94dcc6eecf9126041cf.1");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "aa/aacec3e213d7e7df8bcecd92fe825976803e7d116c4bf45ad15224633744e0b8.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        cache = DiskLruCache.open(cacheDir, 2, 99999);
+        assertThat(cache.get("cls1.cfc76a55-d434-4f0e-8bea-3a015e9ee6f0.training")).isNotNull();
+        assertThat(cache.get("cls1.cfc76a55-d434-4f0e-8bea-3a015e9ee6f0.training").getInputStream(0)).isNotNull();
+        assertThat(cache.get("cls1.cfc76a55-d434-4f0e-8bea-3a015e9ee6f0.training").getInputStream(1)).isNotNull();
+        assertThat(cache.get("JJq3EFKcK4fdbZyBKBDt5OF4qxqP2hTI")).isNotNull();
+        assertThat(cache.get("JJq3EFKcK4fdbZyBKBDt5OF4qxqP2hTI").getInputStream(0)).isNotNull();
+        assertThat(cache.get("JJq3EFKcK4fdbZyBKBDt5OF4qxqP2hTI").getInputStream(1)).isNotNull();
+    }
+
+    @Test public void readsExistingDirWithNoZeroValueFails() throws Exception {
+        File f = new File(cacheDir, "58/58a7b0785038663a4f0cdd38628bba57ecf86ffa37f692d9493d87a61aa3c9ae.1");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "50/5039c90292bc3e3328b82eee165546ee30175a2cc8c8b94dcc6eecf9126041cf.0");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "50/5039c90292bc3e3328b82eee165546ee30175a2cc8c8b94dcc6eecf9126041cf.1");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        cache = DiskLruCache.open(cacheDir, 2, 99999);
+        assertThat(cache.get("cls1.cfc76a55-d434-4f0e-8bea-3a015e9ee6f0.training")).isNull();
+        assertThat(cache.get("JJq3EFKcK4fdbZyBKBDt5OF4qxqP2hTI")).isNotNull();
+        assertThat(cache.get("JJq3EFKcK4fdbZyBKBDt5OF4qxqP2hTI").getInputStream(0)).isNotNull();
+        assertThat(cache.get("JJq3EFKcK4fdbZyBKBDt5OF4qxqP2hTI").getInputStream(1)).isNotNull();
+    }
+
+    @Test public void readsExistingDirWithTooLargeValues() throws Exception {
+        File f = new File(cacheDir, "hello/hello58a7b0785038663a4f0cdd38628bba57ecf86ffa37f692d9493d87a61aa3c9ae.6");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "hello/hello5039c90292bc3e3328b82eee165546ee30175a2cc8c8b94dcc6eecf9126041cf.5");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        f = new File(cacheDir, "hello/helloaacec3e213d7e7df8bcecd92fe825976803e7d116c4bf45ad15224633744e0b8.5");
+        f.getParentFile().mkdir();
+        f.createNewFile();
+        cache = DiskLruCache.open(cacheDir, 1, 99999);
+        assertThat(cache.get("cls1.cfc76a55-d434-4f0e-8bea-3a015e9ee6f0.training")).isNull();
+        assertThat(cache.get("JJq3EFKcK4fdbZyBKBDt5OF4qxqP2hTI")).isNull();
+        assertThat(cache.get("aW04z5gcnXtRWPXXFLtfxJs1EMKzPHiM")).isNull();
     }
 
     private File getCleanFile(String key, int index) {
