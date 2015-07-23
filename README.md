@@ -1,9 +1,9 @@
 Disk LRU Cache
 ==============
 
-A cache that uses a bounded amount of space on a filesystem. Each cache entry
-has a string key and a fixed number of values. Each key must match the regex
-`[a-z0-9_-]{1,64}`.  Values are byte sequences, accessible as streams or files.
+A fork of [Jake Wharton's DiskLRUCache](https://github.com/JakeWharton/DiskLruCache) library. This project makes it easier to populate the cache manually by creating files directly in the cache folder. Each key is hashed with sha256 before insertion to allow any key format. To avoid very large directories, it organizes all cache elements in subdirectories based on the first 2 characters of a hash of the key. Additionally, it does not use a journal file to keep track of dirty files (instead, such cases result in undefined behaviour).
+
+Values are byte sequences, accessible as streams or files.
 Each value must be between `0` and `Integer.MAX_VALUE` bytes in length.
 
 The cache stores its data in a directory on the filesystem. This directory must
@@ -15,7 +15,7 @@ This cache limits the number of bytes that it will store on the filesystem.
 When the number of stored bytes exceeds the limit, the cache will remove
 entries in the background until the limit is satisfied. The limit is not
 strict: the cache may temporarily exceed it while waiting for files to be
-deleted. The limit does not include filesystem overhead or the cache journal so
+deleted. The limit does not include filesystem overhead so
 space-sensitive applications should set a conservative limit.
 
 Clients call `edit` to create or update the values of an entry. An entry may
@@ -45,29 +45,6 @@ appropriately.
 
 
 
-Download
-========
-
-Download [the latest .jar][jar] or grab via Maven:
-```xml
-<dependency>
-  <groupId>com.jakewharton</groupId>
-  <artifactId>disklrucache</artifactId>
-  <version>2.0.2</version>
-</dependency>
-```
-or Gradle:
-```groovy
-compile 'com.jakewharton:disklrucache:2.0.2'
-```
-
-Snapshots of the development version are available in [Sonatype's `snapshots` repository][snap].
-
-If you would like to compile your own version, the library can be built by
-running `mvn clean verify`. The output JAR will be in the `target/` directory.
-*(Note: this requires Maven be installed)*
-
-
 
 License
 =======
@@ -86,8 +63,3 @@ License
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-
-
-
- [jar]: https://search.maven.org/remote_content?g=com.jakewharton&a=disklrucache&v=LATEST
- [snap]: https://oss.sonatype.org/content/repositories/snapshots/
