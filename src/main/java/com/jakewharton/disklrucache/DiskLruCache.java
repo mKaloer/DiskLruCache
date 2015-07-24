@@ -332,7 +332,7 @@ public final class DiskLruCache implements Closeable {
     }
 
     /**
-     * Similar to {@code Remove(String key)}, but takes a hashed key rather than an uncached.
+     * Similar to {@code Remove(String key)}, but takes a hashed key rather than an unhashed.
      * @return true if an entry was removed.
      */
     private synchronized boolean removeHashedKey(String hashedKey) throws IOException {
